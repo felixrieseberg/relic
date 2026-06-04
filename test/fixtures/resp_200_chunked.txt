@@ -1,0 +1,12 @@
+HTTP/1.1 200 OK
+Transfer-Encoding: chunked
+Content-Type: application/json
+
+1a
+{"id":"x","type":"message"
+3e
+,"role":"assistant","content":[{"type":"text","text":"chunked 
+6
+ok"}]}
+0
+

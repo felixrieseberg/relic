@@ -1,0 +1,33 @@
+# RELIC.CFG -- Relic configuration
+#
+# Searched in $HOME (or %USERPROFILE% / %WINDIR%) first, then cwd.
+# Format: key=value, one per line. Lines starting with '#' are comments.
+# Leading whitespace is ignored. All keys optional except api_key.
+
+# Anthropic API key. Can also be passed via ANTHROPIC_API_KEY env var.
+api_key=sk-ant-api03-...
+
+# Model to use (CLI: -m MODEL, REPL: /model NAME).
+# model=claude-sonnet-4-6
+
+# HTTP CONNECT proxy for the TLS tunnel (CLI: --proxy H:P).
+# proxy=192.168.1.1:8080
+
+# Hard-code api.anthropic.com's IP to bypass DNS (CLI: --ip A.B.C.D).
+# host_ip=
+
+# Tool permission mode (CLI: --permission-mode MODE, REPL: /status edits).
+#   default           prompt for write/edit/shell
+#   acceptEdits       auto-approve file write/edit, still prompt for shell
+#   bypassPermissions auto-approve everything (same as
+#                     --dangerously-skip-permissions)
+# permission_mode=acceptEdits
+
+# Max output tokens per model turn (REPL: /status max_tokens N).
+# Default 8192. Too low and large Write/Edit tool calls get truncated.
+# max_tokens=8192
+
+# Scrollback buffer size in lines (REPL: PgUp or /scroll to view).
+# Default is 512. Values above that allocate ~81 bytes per line of extra RAM
+# at startup (one block, never freed) -- e.g. scroll=2000 costs ~160 KB.
+# scroll=2000

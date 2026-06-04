@@ -1,0 +1,6 @@
+# User-supplied emulator assets — ROMs, OS install media, boot disks, NVRAM.
+# Nothing here is redistributable; everything is recreated by tools/setup_*.sh.
+*
+!.gitignore
+!*/
+!*/README.md

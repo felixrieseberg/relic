@@ -1,0 +1,6 @@
+/.cache/
+/out/
+/rootfs/bin/busybox
+/rootfs/bin/relic
+/rootfs/bin/relicos
+/rootfs/RELIC.CFG
