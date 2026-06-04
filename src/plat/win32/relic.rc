@@ -1,0 +1,4 @@
+/* Application icon for RELIC.EXE. Explorer shows the icon group with the
+ * lowest ID as the file's default. relic.ico is generated from
+ * relic_icon.txt by tools/gen_win32_icon.py and committed. */
+1 ICON "relic.ico"

@@ -1,0 +1,5 @@
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 175
+
+{"id":"msg_01","type":"message","role":"assistant","content":[{"type":"text","text":"Hello there friend"}],"model":"test-model-1","stop_reason":"end_turn","usage":{"input":5}}

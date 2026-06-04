@@ -1,0 +1,167 @@
+Relic — Third-Party Notices
+===========================
+
+This distribution includes the following third-party components. Their
+copyright notices and license terms are reproduced below. Relic itself is
+licensed under the MIT License; see the LICENSE file.
+
+-------------------------------------------------------------------------------
+1. BearSSL
+-------------------------------------------------------------------------------
+
+Home:   https://bearssl.org/
+Source: third_party/bearssl/
+Used:   Linked into all Relic binaries (posix, win32, macppc, xbox, wii) to
+        provide TLS.
+
+Copyright (c) 2016 Thomas Pornin <pornin@bolet.org>
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+-------------------------------------------------------------------------------
+2. jsmn
+-------------------------------------------------------------------------------
+
+Home:   https://github.com/zserge/jsmn
+Source: third_party/jsmn/jsmn.h
+Used:   Compiled into all Relic binaries to parse JSON responses.
+
+MIT License
+
+Copyright (c) 2010 Serge Zaitsev
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+-------------------------------------------------------------------------------
+3. Lua
+-------------------------------------------------------------------------------
+
+Home:   https://www.lua.org/
+Source: Fetched at build time (lua-5.4.7); see build/{xbox,wii}/build_lua.sh.
+Used:   Statically linked as the Shell tool's interpreter on targets
+        without a native shell. Not distributed in source form.
+
+Copyright (C) 1994-2024 Lua.org, PUC-Rio.
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+-------------------------------------------------------------------------------
+4. nxdk (xbox distribution only)
+-------------------------------------------------------------------------------
+
+Home:   https://github.com/XboxDev/nxdk
+Used:   The Xbox binary is built with the nxdk toolchain and statically
+        links its runtime libraries (pdclib, lwIP, HAL, kernel and USB
+        glue). nxdk is not distributed in source form with Relic.
+
+nxdk is an aggregate of independently-licensed components; see the
+LICENSE files in the nxdk repository for the full per-component terms.
+The components linked into the Relic Xbox binary are, to the best of the
+author's knowledge:
+
+  - pdclib       Public Domain / CC0 (Martin "Solar" Baute and contributors)
+  - lwIP         3-clause BSD (Swedish Institute of Computer Science)
+  - nxdk lib/hal MIT and similar permissive (XboxDev contributors)
+
+-------------------------------------------------------------------------------
+5. devkitPPC / libogc (wii distribution only)
+-------------------------------------------------------------------------------
+
+Home:   https://devkitpro.org/  /  https://github.com/devkitPro/libogc
+Used:   The Wii binary is built with the devkitPPC toolchain and statically
+        links libogc and libfat. Neither is distributed in source form with
+        Relic.
+
+  - libogc          libogc license (permissive; Michael Wiedenbauer
+                    "shagkur", Dave Murphy "WinterMute" and contributors)
+  - libfat          BSD (Michael "Chishm" Chisholm)
+
+-------------------------------------------------------------------------------
+6. Terminus Font (relicos distribution only)
+-------------------------------------------------------------------------------
+
+Home:   https://terminus-font.sourceforge.net/
+Source: src/plat/relicos/relicos/font8x16.h (8x16 bitmap glyphs)
+Used:   Compiled into the relicos framebuffer console.
+
+Copyright (c) 2020 Dimitar Toshkov Zhekov,
+with Reserved Font Name "Terminus Font".
+
+This Font Software is licensed under the SIL Open Font License,
+Version 1.1. This license is available with a FAQ at:
+https://scripts.sil.org/OFL
+
+-------------------------------------------------------------------------------
+7. Apple Open Transport static glue (macppc distribution only)
+-------------------------------------------------------------------------------
+
+Files:  OpenTransportAppPPC.o, OpenTptInetPPC.o
+Source: Extracted from Apple's final MPW release (MPW-GM disk image),
+        which Apple distributed publicly at
+        ftp://ftp.apple.com/developer/Tool_Chest/Core_Mac_OS_Tools/.
+        That server is long gone; tools/fetch_otglue.sh pulls the same
+        image from a public mirror of the original Apple FTP tree.
+Used:   Linked into the PowerPC Mac OS build (build/macppc) so that
+        InitOpenTransport and OTOpenInternetServices resolve correctly on
+        Open Transport 1.x. Not distributed in source form; the object
+        files are fetched at build time from a public Apple mirror (see
+        tools/fetch_otglue.sh) and are not redistributed with Relic source.
+
+These object files are Copyright (c) Apple Computer, Inc. They are Apple's
+Open Transport static link glue, originally shipped as part of the MPW and
+Universal Interfaces & Libraries developer tools. They are included in the
+compiled macppc binary under the terms of the original Apple distribution.
+No additional license text accompanies the object files; consult Apple's
+MPW / Universal Interfaces license for details.
