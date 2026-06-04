@@ -1,0 +1,6 @@
+#!/bin/sh
+[ "$1" = bound ] || [ "$1" = renew ] || exit 0
+ip addr add "$ip/$mask" dev "$interface"
+[ -n "$router" ] && ip route add default via "${router%% *}" dev "$interface"
+: > /etc/resolv.conf
+for d in $dns; do echo "nameserver $d" >> /etc/resolv.conf; done
