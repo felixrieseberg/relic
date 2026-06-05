@@ -75,17 +75,22 @@ do_posix() {
   rm -rf dist/posix
   OS=$(uname -s | tr '[:upper:]' '[:lower:]')
   if [ "$OS" = darwin ]; then
-    # Universal 2-way binary: x86_64 (macOS 10.13+, Intel Macs back to ~2009)
-    # and arm64 (macOS 11+; clang clamps the arm64 slice's min version).
-    # BearSSL must be rebuilt fat first so both slices have something to
-    # link against; the posix Makefile then sees the .a and skips its own
-    # bearssl rule.
-    MACFLAGS="-arch x86_64 -arch arm64 -mmacosx-version-min=10.13"
+    # Universal 2-way binary: x86_64 (macOS 10.6+, i.e. any 64-bit Intel Mac
+    # on Snow Leopard or later) and arm64 (macOS 11+; clang clamps the arm64
+    # slice's min version). 10.6 is the floor for the x86_64 slice: the
+    # linker emits the old LC_UNIXTHREAD startup for pre-10.8 targets, but
+    # dyld_stub_binder only exists from 10.6, and every undefined symbol in
+    # the binary ($INODE64/$1050 variants, __stack_chk_*, __*_chk) is 10.5+.
+    # Older Macs than that are 32-bit Intel or PPC and need other slices
+    # entirely. BearSSL must be rebuilt fat first so both slices have
+    # something to link against; the posix Makefile then sees the .a and
+    # skips its own bearssl rule.
+    MACFLAGS="-arch x86_64 -arch arm64 -mmacosx-version-min=10.6"
     rm -rf third_party/bearssl/build
     $MAKE -C third_party/bearssl lib CFLAGS="-W -Wall -Os -fPIC $MACFLAGS"
     $MAKE -C build/posix relic CC="cc $MACFLAGS"
     ARCH=universal
-    REQUIRES="macOS 10.13+ (Intel) or 11+ (Apple Silicon)"
+    REQUIRES="macOS 10.6+ (64-bit Intel) or 11+ (Apple Silicon)"
   else
     $MAKE -C build/posix relic
     ARCH=$(uname -m)
