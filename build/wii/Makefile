@@ -14,7 +14,7 @@ IMAGE   := relic-dkp
 CACHE   := $(abspath .cache)
 MOUNTS  := -v $(abspath $(ROOT)):/work:ro -v $(abspath $(OUT)):/out -v $(CACHE):/cache
 DOCKER  := docker run --rm $(MOUNTS) $(IMAGE)
-DOCKERI := docker run --rm -i $(MOUNTS) $(IMAGE)
+DOCKERI := docker run --rm -i -e FORCE $(MOUNTS) $(IMAGE)
 
 .PHONY: all image bearssl lua relic sd shell clean
 
