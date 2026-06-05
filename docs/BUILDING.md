@@ -158,9 +158,10 @@ on purpose: its binaries statically link Apple's Open Transport glue (see
 `tools/fetch_otglue.sh`), so the resulting archive is for personal use
 only. `tools/build_release.sh macppc` builds it explicitly.
 
-On macOS the posix archive is a universal binary: x86_64 (runs on Intel Macs
-back to macOS 10.13 High Sierra) plus arm64 (Apple Silicon), built by
-rebuilding BearSSL fat and passing both `-arch` flags to clang.
+On macOS the posix archive is a universal binary: x86_64 (runs on 64-bit
+Intel Macs back to macOS 10.6 Snow Leopard) plus arm64 (Apple Silicon),
+built by rebuilding BearSSL fat and passing both `-arch` flags to clang.
+32-bit Intel and PowerPC OS X are not covered; build from source there.
 
 In CI, pushing a `v*` tag runs `.github/workflows/release.yml`: it runs the
 test suite, builds every target (x86_64 + aarch64 Linux and universal macOS
