@@ -31,6 +31,7 @@ jobs:
           - { target: posix, os: ubuntu-24.04-arm }
           - { target: posix, os: macos-latest }
           - { target: win32, os: ubuntu-latest }
+          - { target: win16, os: ubuntu-latest }
           - { target: xbox, os: ubuntu-latest }
           - { target: wii, os: ubuntu-latest }
     runs-on: ${{ matrix.os }}

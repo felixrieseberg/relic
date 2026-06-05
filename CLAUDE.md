@@ -3,7 +3,7 @@
 ## Building and testing
 
 - Host build + unit tests: `make -C build/posix test`
-- Cross builds live under `build/{win32,macppc,xbox,wii}/`; see
+- Cross builds live under `build/{win32,win16,macppc,xbox,wii}/`; see
   `docs/BUILDING.md` for toolchain setup.
 - Build test binaries into a subdirectory of this repo (e.g. `dist/posix/`
   or `./tmp/`), not `/tmp` — keeps artefacts next to the source and avoids

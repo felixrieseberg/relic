@@ -19,7 +19,7 @@ cd "$(dirname "$0")/.."
 ROOT=$(pwd)
 REL=$ROOT/dist/release
 
-ALL="posix win32 xbox wii"
+ALL="posix win32 win16 xbox wii"
 TARGETS=${*:-$ALL}
 
 # Version stamp: $VERSION, else the nearest git tag (or short sha), with any
@@ -126,6 +126,20 @@ do_win32() {
   finish_zip "$STAGE" "$NAME.zip"
 }
 
+do_win16() {
+  need_docker win16
+  rm -rf dist/win16
+  $MAKE -C build/win16 all
+  tools/pack_win16.sh
+  NAME=relic-$VERSION-win16
+  stage_init win16
+  cp dist/win16/RELIC.EXE dist/win16/RELIC.CFG dist/win16/README.TXT \
+     dist/win16/relic.img "$STAGE/"
+  sed 's/$/\r/' LICENSE > "$STAGE/LICENSE.TXT"
+  sed 's/$/\r/' NOTICES > "$STAGE/NOTICES.TXT"
+  finish_zip "$STAGE" "$NAME.zip"
+}
+
 do_macppc() {
   echo "** macppc archives link Apple's OT glue -- for personal use only," >&2
   echo "** do not attach them to a release."                               >&2
@@ -205,6 +219,7 @@ for t in $TARGETS; do
   case $t in
     posix)  do_posix ;;
     win32)  do_win32 ;;
+    win16)  do_win16 ;;
     macppc) do_macppc ;;
     xbox)   do_xbox ;;
     wii)    do_wii ;;

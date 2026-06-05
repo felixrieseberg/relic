@@ -11,6 +11,7 @@
 .DS_Store
 /.claude/
 /build/win32/.cache/
+/build/win16/.cache/
 RELIC*.DAT
 RELIC.IDX
 /test/e2e/.work/
