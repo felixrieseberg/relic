@@ -339,15 +339,43 @@ void plat_net_close(int h)
 
 /* --- entropy / time ----------------------------------------------------- */
 
+/* Pentium timestamp counter, gated so 386/486 boxes don't fault on the
+ * opcode: CPUID exists iff EFLAGS.ID (bit 21) is toggleable from ring 3,
+ * and CPUID.1:EDX bit 4 then reports TSC support. The cycle counter's low
+ * bits carry sub-microsecond scheduling jitter -- by far the best entropy
+ * this platform can offer when present (raw opcode bytes: wasm predates
+ * the mnemonics). */
+static unsigned long w16_eflags_id(void);
+#pragma aux w16_eflags_id = "pushfd"                                           \
+                            "pop eax"                                          \
+                            "mov edx,eax"                                      \
+                            "xor eax,200000h"                                  \
+                            "push eax"                                         \
+                            "popfd"                                            \
+                            "pushfd"                                           \
+                            "pop eax"                                          \
+                            "xor eax,edx" __value[__eax] __modify[__edx]
+
+static unsigned long w16_cpuid1_edx(void);
+#pragma aux w16_cpuid1_edx = "mov eax,1" 0x0F 0xA2 /* cpuid */                 \
+    "mov eax,edx" __value[__eax] __modify[__ebx __ecx __edx]
+
+static unsigned long w16_rdtsc(void);
+#pragma aux w16_rdtsc = 0x0F 0x31 /* rdtsc */                                  \
+    __value[__eax] __modify[__edx]
+
 int plat_entropy(unsigned char *out, int len)
 {
     /* This is BearSSL's only DRBG seed (no system RNG exists on Win 3.x).
      * Each round waits for a 55 ms timer tick boundary, then folds in the
-     * tick count, the 8253 timer phase (ports 40h/43h are virtualised by
-     * the VTD in 386 enhanced mode and carry sub-tick interrupt jitter),
-     * cursor position, free memory, and the running task handle. ~900 ms
-     * once at startup. Threat model: passive eavesdropper, retro toy. */
+     * TSC when the CPU has one, the tick count, the 8253 timer phase
+     * (ports 40h/43h are virtualised by the VTD in 386 enhanced mode and
+     * carry sub-tick interrupt jitter), cursor position, free memory, and
+     * the running task handle. ~900 ms once at startup. Threat model:
+     * passive eavesdropper, retro toy. */
+    static int has_tsc = -1;
     struct {
+        DWORD tsc;
         DWORD tick;
         WORD timer;
         POINT pt;
@@ -357,6 +385,8 @@ int plat_entropy(unsigned char *out, int len)
         DWORD ver;
     } s;
     int i, j;
+    if (has_tsc < 0)
+        has_tsc = w16_eflags_id() != 0 && (w16_cpuid1_edx() & 0x10) != 0;
     memset(out, 0, (size_t)len);
     memset(&s, 0, sizeof s);
     s.ver = GetVersion();
@@ -365,6 +395,7 @@ int plat_entropy(unsigned char *out, int len)
         do {
             w16_yield();
         } while (GetTickCount() == t);
+        if (has_tsc) s.tsc = w16_rdtsc();
         s.tick = GetTickCount();
         outp(0x43, 0); /* latch counter 0 */
         s.timer = (WORD)inp(0x40);
@@ -373,9 +404,13 @@ int plat_entropy(unsigned char *out, int len)
         s.freesp = GetFreeSpace(0);
         s.task = (WORD)GetCurrentTask();
         s.t = (DWORD)time(NULL);
+        /* Fold the rotated struct into every byte, plus a fresh fast-moving
+         * sample (TSC low bytes, else the 8253 phase) so each output byte
+         * touches a high-jitter source every round. */
         for (i = 0; i < len; i++)
             out[i] ^= ((unsigned char *)&s)[(i + j) % (int)sizeof s]
-                      ^ ((unsigned char *)&s.timer)[(i + j) & 1];
+                      ^ (has_tsc ? ((unsigned char *)&s.tsc)[(i + j) & 3]
+                                 : ((unsigned char *)&s.timer)[(i + j) & 1]);
     }
     return len;
 }
