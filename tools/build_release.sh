@@ -1,7 +1,7 @@
 #!/bin/sh
 # Build clean, distributable release archives into dist/release/.
 #
-#   tools/build_release.sh [target ...]    # default: all six targets
+#   tools/build_release.sh [target ...]    # default: all seven targets
 #   VERSION=0.2.0 tools/build_release.sh   # override the version stamp
 #
 # macppc fetches Apple's Open Transport glue on first build (its Makefile
@@ -19,7 +19,7 @@ cd "$(dirname "$0")/.."
 ROOT=$(pwd)
 REL=$ROOT/dist/release
 
-ALL="posix win32 macppc osxppc xbox wii"
+ALL="posix win32 win16 macppc osxppc xbox wii"
 TARGETS=${*:-$ALL}
 
 # Version stamp: $VERSION, else the nearest git tag (or short sha), with any
@@ -84,17 +84,22 @@ do_posix() {
   rm -rf dist/posix
   OS=$(uname -s | tr '[:upper:]' '[:lower:]')
   if [ "$OS" = darwin ]; then
-    # Universal 2-way binary: x86_64 (macOS 10.13+, Intel Macs back to ~2009)
-    # and arm64 (macOS 11+; clang clamps the arm64 slice's min version).
-    # BearSSL must be rebuilt fat first so both slices have something to
-    # link against; the posix Makefile then sees the .a and skips its own
-    # bearssl rule.
-    MACFLAGS="-arch x86_64 -arch arm64 -mmacosx-version-min=10.13"
+    # Universal 2-way binary: x86_64 (macOS 10.6+, i.e. any 64-bit Intel Mac
+    # on Snow Leopard or later) and arm64 (macOS 11+; clang clamps the arm64
+    # slice's min version). 10.6 is the floor for the x86_64 slice: the
+    # linker emits the old LC_UNIXTHREAD startup for pre-10.8 targets, but
+    # dyld_stub_binder only exists from 10.6, and every undefined symbol in
+    # the binary ($INODE64/$1050 variants, __stack_chk_*, __*_chk) is 10.5+.
+    # Older Macs than that are 32-bit Intel or PPC and need other slices
+    # entirely. BearSSL must be rebuilt fat first so both slices have
+    # something to link against; the posix Makefile then sees the .a and
+    # skips its own bearssl rule.
+    MACFLAGS="-arch x86_64 -arch arm64 -mmacosx-version-min=10.6"
     rm -rf third_party/bearssl/build
     $MAKE -C third_party/bearssl lib CFLAGS="-W -Wall -Os -fPIC $MACFLAGS"
     $MAKE -C build/posix relic CC="cc $MACFLAGS"
     ARCH=universal
-    REQUIRES="macOS 10.13+ (Intel) or 11+ (Apple Silicon)"
+    REQUIRES="macOS 10.6+ (64-bit Intel) or 11+ (Apple Silicon)"
   else
     $MAKE -C build/posix relic
     ARCH=$(uname -m)
@@ -126,6 +131,20 @@ do_win32() {
   stage_init win32
   cp dist/win32/RELIC.EXE dist/win32/RELIC.CFG dist/win32/README.TXT \
      dist/win32/relic.img "$STAGE/"
+  sed 's/$/\r/' LICENSE > "$STAGE/LICENSE.TXT"
+  sed 's/$/\r/' NOTICES > "$STAGE/NOTICES.TXT"
+  finish_zip "$STAGE" "$NAME.zip"
+}
+
+do_win16() {
+  need_docker win16
+  rm -rf dist/win16
+  $MAKE -C build/win16 all
+  tools/pack_win16.sh
+  NAME=relic-$VERSION-win16
+  stage_init win16
+  cp dist/win16/RELIC.EXE dist/win16/RELIC.CFG dist/win16/README.TXT \
+     dist/win16/relic.img "$STAGE/"
   sed 's/$/\r/' LICENSE > "$STAGE/LICENSE.TXT"
   sed 's/$/\r/' NOTICES > "$STAGE/NOTICES.TXT"
   finish_zip "$STAGE" "$NAME.zip"
@@ -236,6 +255,7 @@ for t in $TARGETS; do
   case $t in
     posix)  do_posix ;;
     win32)  do_win32 ;;
+    win16)  do_win16 ;;
     macppc) do_macppc ;;
     osxppc) do_osxppc ;;
     xbox)   do_xbox ;;

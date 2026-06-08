@@ -32,6 +32,7 @@ jobs:
           - { target: posix, os: ubuntu-24.04-arm }
           - { target: posix, os: macos-latest }
           - { target: win32, os: ubuntu-latest }
+          - { target: win16, os: ubuntu-latest }
           - { target: macppc, os: ubuntu-latest }
           - { target: osxppc, os: ubuntu-latest }
           - { target: xbox, os: ubuntu-latest }

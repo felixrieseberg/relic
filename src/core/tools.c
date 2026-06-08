@@ -405,8 +405,24 @@ static int do_edit(const char *path, const char *olds, int olen,
                     "replace_all=true.",
                     hits);
 
-    if (snprintf(tmp, sizeof tmp, "%s~", path) >= (int)sizeof tmp)
-        return errp(out, cap, "error: path too long");
+    /* Temp file in the target's directory (rename must not cross volumes)
+     * with a fixed 8.3-safe name: the old "path~" scheme grew a 4-char
+     * extension that DOS filesystems (win16) silently truncate back to the
+     * original name, so the "temp" WAS the target and the remove+rename
+     * fallback deleted the only copy. */
+    {
+        int di = -1;
+        for (i = 0; path[i]; i++)
+            if (is_sep(path[i])) di = i;
+        /* A drive-relative DOS path ("C:FOO.TXT") has no separator; the
+         * drive prefix must still reach the temp name or it lands on the
+         * current drive and the remove+rename fallback can cross volumes
+         * (remove the original, then fail the second rename too). */
+        if (di < 0 && path[0] && path[1] == ':') di = 1;
+        if (snprintf(tmp, sizeof tmp, "%.*sRLC$EDIT.TMP", di + 1, path)
+            >= (int)sizeof tmp)
+            return errp(out, cap, "error: path too long");
+    }
     /* fopen("wb") creates tmp with the umask default and rename() then
      * replaces path's inode, so an executable script would silently lose
      * its +x bit. Capture the original mode now and reapply it to tmp

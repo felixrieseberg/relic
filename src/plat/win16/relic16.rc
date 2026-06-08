@@ -1,0 +1,4 @@
+/* Application icon for the Windows 3.x RELIC.EXE. Program Manager shows
+ * the icon group with the lowest ID. Reuses the win32 relic.ico (wrc picks
+ * the 16-color images NE resources can carry). */
+1 ICON "relic.ico"
