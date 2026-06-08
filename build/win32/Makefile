@@ -10,7 +10,7 @@ IMAGE   := relic-ow2
 CACHE   := $(abspath .cache)
 MOUNTS  := -v $(abspath $(ROOT)):/work:ro -v $(abspath $(OUT)):/out -v $(CACHE):/cache
 DOCKER  := docker run --rm --platform linux/amd64 $(MOUNTS) $(IMAGE)
-DOCKERI := docker run --rm -i --platform linux/amd64 $(MOUNTS) $(IMAGE)
+DOCKERI := docker run --rm -i -e FORCE --platform linux/amd64 $(MOUNTS) $(IMAGE)
 
 .PHONY: all image bearssl relic run audit floppy shell clean
 

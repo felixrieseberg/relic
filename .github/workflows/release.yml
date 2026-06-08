@@ -20,9 +20,10 @@ jobs:
       - run: make test
 
   build:
-    # macppc is deliberately absent: its binaries statically link Apple's
-    # Open Transport glue (tools/fetch_otglue.sh) and must not be
-    # redistributed. Build that target from source locally.
+    # macppc auto-fetches Apple's OT glue (tools/fetch_otglue.sh, run by
+    # build/macppc/Makefile; cached below). osxppc compiles its cross
+    # toolchain image first (build/osxppc/Dockerfile), which dominates
+    # that leg's runtime.
     strategy:
       fail-fast: false
       matrix:
@@ -32,11 +33,24 @@ jobs:
           - { target: posix, os: macos-latest }
           - { target: win32, os: ubuntu-latest }
           - { target: win16, os: ubuntu-latest }
+          - { target: macppc, os: ubuntu-latest }
+          - { target: osxppc, os: ubuntu-latest }
           - { target: xbox, os: ubuntu-latest }
           - { target: wii, os: ubuntu-latest }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      # Spare the third-party MPW-GM mirror (and release reliability) the
+      # 24 MB re-download on every run; the key pins the same image sha256
+      # that tools/fetch_otglue.sh verifies.
+      - name: cache OT glue
+        if: matrix.target == 'macppc'
+        uses: actions/cache@v4
+        with:
+          path: |
+            third_party/otglue
+            emu/macppc/mpw.dsk
+          key: otglue-99bbfa95
       - name: build ${{ matrix.target }}
         run: tools/build_release.sh ${{ matrix.target }}
         env:

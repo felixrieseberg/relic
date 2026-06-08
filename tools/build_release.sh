@@ -1,12 +1,12 @@
 #!/bin/sh
 # Build clean, distributable release archives into dist/release/.
 #
-#   tools/build_release.sh [target ...]    # default: posix win32 xbox wii
+#   tools/build_release.sh [target ...]    # default: all seven targets
 #   VERSION=0.2.0 tools/build_release.sh   # override the version stamp
 #
-# macppc is not in the default set: its binaries statically link Apple's
-# Open Transport glue (tools/fetch_otglue.sh), so the archive must not be
-# redistributed. Build it explicitly: tools/build_release.sh macppc
+# macppc fetches Apple's Open Transport glue on first build (its Makefile
+# runs tools/fetch_otglue.sh); osxppc compiles its cross toolchain into a
+# local Docker image on first run (build/osxppc/Dockerfile).
 #
 # Each target's dist/<target>/ is wiped and rebuilt from scratch so a
 # developer RELIC.CFG holding a real API key (see docs/BUILDING.md) can never
@@ -19,7 +19,7 @@ cd "$(dirname "$0")/.."
 ROOT=$(pwd)
 REL=$ROOT/dist/release
 
-ALL="posix win32 win16 xbox wii"
+ALL="posix win32 win16 macppc osxppc xbox wii"
 TARGETS=${*:-$ALL}
 
 # Version stamp: $VERSION, else the nearest git tag (or short sha), with any
@@ -64,6 +64,15 @@ finish_zip() {
   (cd "$1" && zip -q -r -X "$REL/$2" .)
   rm -rf "$1"
   echo "  -> dist/release/$2"
+}
+
+# finish_targz STAGE NAME -- key-check, tar staged $NAME/ tree, clean up.
+finish_targz() {
+  key_check "$1"
+  rm -f "$REL/$2.tar.gz"
+  COPYFILE_DISABLE=1 tar -czf "$REL/$2.tar.gz" -C "$1" "$2"
+  rm -rf "$1"
+  echo "  -> dist/release/$2.tar.gz"
 }
 
 checksum() {
@@ -111,11 +120,7 @@ Relic $VERSION ($OS-$ARCH)
    ./relic                 (chat; /quit to exit)
 Requires $REQUIRES.
 EOF
-  key_check "$STAGE"
-  rm -f "$REL/$NAME.tar.gz"
-  COPYFILE_DISABLE=1 tar -czf "$REL/$NAME.tar.gz" -C "$STAGE" "$NAME"
-  rm -rf "$STAGE"
-  echo "  -> dist/release/$NAME.tar.gz"
+  finish_targz "$STAGE" "$NAME"
 }
 
 do_win32() {
@@ -146,11 +151,11 @@ do_win16() {
 }
 
 do_macppc() {
-  echo "** macppc archives link Apple's OT glue -- for personal use only," >&2
-  echo "** do not attach them to a release."                               >&2
   need_docker macppc
   rm -rf dist/macppc
-  $MAKE -C build/macppc relic
+  # clean-dsk: never reuse a cached .dsk whose freed HFS blocks may hold a
+  # dev API key (see build/macppc/Makefile, which also fetches the OT glue).
+  $MAKE -C build/macppc clean-dsk relic
   NAME=relic-$VERSION-macppc
   stage_init macppc
   cp dist/macppc/Relic.bin dist/macppc/Relic.dsk "$STAGE/"
@@ -168,6 +173,32 @@ Put your real key on the api_key= line of RELIC.CFG before launching.
 Requires Mac OS 8.1+ with Open Transport TCP/IP.
 EOF
   finish_zip "$STAGE" "$NAME.zip"
+}
+
+do_osxppc() {
+  need_docker osxppc
+  rm -rf dist/osxppc
+  # FORCE=1 rebuilds the cached libbearssl.a -- releases must never link a
+  # BearSSL archive left over from older sources or different flags.
+  # `all` = relic + Mach-O audit.
+  $MAKE -C build/osxppc all FORCE=1
+  NAME=relic-$VERSION-osxppc
+  stage_init osxppc
+  mkdir -p "$STAGE/$NAME"
+  cp dist/osxppc/relic "$STAGE/$NAME/"
+  cp RELIC.CFG.example "$STAGE/$NAME/"
+  cp LICENSE NOTICES "$STAGE/$NAME/"
+  cat > "$STAGE/$NAME/README" <<EOF
+Relic $VERSION for Mac OS X on PowerPC (10.1 Puma through 10.5 Leopard)
+-----------------------------------------------------------------------
+1. Copy RELIC.CFG.example to RELIC.CFG (here or in \$HOME) and put your
+   real key on the api_key= line, or export ANTHROPIC_API_KEY=sk-ant-...
+2. ./relic -p "hello"      (one-shot)
+   ./relic                 (chat; /quit to exit)
+Run it from Terminal.app. Requires Mac OS X 10.1 or later on PowerPC
+(G3 or later); also runs on Intel 10.4-10.6 under Rosetta.
+EOF
+  finish_targz "$STAGE" "$NAME"
 }
 
 do_xbox() {
@@ -226,6 +257,7 @@ for t in $TARGETS; do
     win32)  do_win32 ;;
     win16)  do_win16 ;;
     macppc) do_macppc ;;
+    osxppc) do_osxppc ;;
     xbox)   do_xbox ;;
     wii)    do_wii ;;
     *) echo "unknown target '$t' (expected: $ALL)" >&2; exit 1 ;;
