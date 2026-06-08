@@ -414,6 +414,11 @@ static int do_edit(const char *path, const char *olds, int olen,
         int di = -1;
         for (i = 0; path[i]; i++)
             if (is_sep(path[i])) di = i;
+        /* A drive-relative DOS path ("C:FOO.TXT") has no separator; the
+         * drive prefix must still reach the temp name or it lands on the
+         * current drive and the remove+rename fallback can cross volumes
+         * (remove the original, then fail the second rename too). */
+        if (di < 0 && path[0] && path[1] == ':') di = 1;
         if (snprintf(tmp, sizeof tmp, "%.*sRLC$EDIT.TMP", di + 1, path)
             >= (int)sizeof tmp)
             return errp(out, cap, "error: path too long");

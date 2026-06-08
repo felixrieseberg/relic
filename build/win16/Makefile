@@ -29,7 +29,7 @@ $(OUT):
 $(CACHE):
 	mkdir -p $(CACHE)
 
-bearssl: | $(OUT) $(CACHE)
+bearssl: image | $(OUT) $(CACHE)
 	sync; $(DOCKERI) sh -s < build_bearssl.sh
 
 relic: bearssl

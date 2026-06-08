@@ -597,21 +597,30 @@ int plat_shell(const char *cmd, char *out, int cap)
     const char *comspec;
     DWORD t0;
     FILE *f;
-    int n;
+    int n, vlen;
     out[0] = 0;
 
     /* cd / chdir / X: -- COMMAND.COM has no chaining, so a directory change
-     * is always the whole command. Apply it to this process so it sticks. */
+     * is always the whole command. Apply it to this process so it sticks.
+     * DOS also accepts the argument glued to the verb ("cd..", "cd\DIR");
+     * first_token can't split those, so match the verb by prefix. */
     first_token(cmd, tok, sizeof tok);
-    if (!stricmp(tok, "cd") || !stricmp(tok, "chdir")
-        || (tok[0] && tok[1] == ':' && tok[2] == 0)) {
+    vlen = 0;
+    if (!stricmp(tok, "cd") || !stricmp(tok, "chdir"))
+        vlen = (int)strlen(tok);
+    else if (!strnicmp(tok, "chdir", 5)
+             && (tok[5] == '.' || tok[5] == '\\' || tok[5] == '/'))
+        vlen = 5;
+    else if (!strnicmp(tok, "cd", 2)
+             && (tok[2] == '.' || tok[2] == '\\' || tok[2] == '/'))
+        vlen = 2;
+    if (vlen || (tok[0] && tok[1] == ':' && tok[2] == 0)) {
         const char *a = cmd;
         int e;
-        if (tok[1] != ':') { /* skip the verb for cd/chdir */
+        if (vlen) { /* skip the verb for cd/chdir */
             while (*a == ' ' || *a == '\t' || *a == '@')
                 a++;
-            while (*a && *a != ' ' && *a != '\t')
-                a++;
+            a += vlen;
         }
         while (*a == ' ' || *a == '\t')
             a++;
@@ -643,6 +652,15 @@ int plat_shell(const char *cmd, char *out, int cap)
         }
         snprintf(out, (size_t)cap, "Invalid directory: %s\n", tok);
         return 1;
+    }
+
+    /* 'exit' would end COMMAND.COM before the wrapper batch writes its
+     * completion flag, hanging the poll below for the full timeout. */
+    if (!stricmp(tok, "exit")) {
+        snprintf(out, (size_t)cap,
+                 "(nothing to exit -- each Shell call runs its own "
+                 "COMMAND.COM)\n");
+        return 0;
     }
 
     /* COMMAND.COM has no &&, ||, or 2>. It prints "Too many parameters" to
