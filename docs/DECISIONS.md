@@ -12,6 +12,7 @@ latter.
 | Porting layer | **`src/plat/plat.h`** | `core/` is 100% portable C; each OS gets its own `plat_*.c` implementing the contract. |
 | Win95 toolchain | **Open Watcom v2** (`-bt=nt`) | Targets Win95, ships own CRT (no MSVCRT.DLL), runs on modern hosts. Import table is **audited at build time** against `tools/win32-allowlist.txt`. |
 | Mac toolchain | **Retro68** (PPC) | Modern-host build loop. |
+| OS X PPC toolchain | **cctools-port (`877.8-ld64-253.9-ppc`) + FSF GCC 14** in Docker | Apple's current toolchain can't emit `ppc` Mach-O; the community-maintained ld64/as PPC revival plus upstream GCC's still-living Darwin/rs6000 support can. Reuses `src/plat/posix` unchanged, so the port is purely a toolchain, not code. The binary links against the 10.1.5 SDK (`-mmacosx-version-min=10.1 -mlong-double-64`) so one build covers 10.1 Puma through 10.5 Leopard; 10.0 is unreachable (no SDK, no `/dev/random` in xnu-123.5, no two-level namespace). SDKs are fetched at image build, like the OT glue. |
 | TLS | **BearSSL**, ECDHE+{ChaCha20,AES128-GCM} only | Zero malloc, zero FILE\*, builds on every target compiler; minimal cipher set so the linker drops CBC, 3DES, AES-256, MD5, and the big AES tables. |
 | Trust | **3 pinned roots** (GTS R4, GTS R1, GlobalSign Root CA) | Survives normal rotation; ~3 KB. Clock-skew: if the system clock reads earlier than 2020-01-01, validate against the build date instead. |
 | JSON in | **jsmn** | Header-only, no malloc; response shape is shallow. |

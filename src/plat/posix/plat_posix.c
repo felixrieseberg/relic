@@ -15,6 +15,7 @@
 #include <termios.h>
 #include <signal.h>
 #include <netdb.h>
+#include <netinet/in.h> /* sockaddr_in; not chain-included by pre-10.3 SDKs */
 #include <arpa/inet.h>
 #include "../plat.h"
 

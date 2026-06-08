@@ -15,17 +15,30 @@ BUILD_DAYS := $(shell expr `date +%s` / 86400)
 CONFIGURE  := cmake -S /work/build/macppc -B /cache/ppc -DCMAKE_TOOLCHAIN_FILE=$(CMAKE_TC) -DBUILD_UNIX_DAYS=$(BUILD_DAYS) >/dev/null
 
 # EXTRA lets a target append post-build steps (e.g. hcopy RELIC.CFG into the .dsk).
+# sync first: Docker's mount can serve stale file contents right after
+# host-side writes (the same race build/win32/Makefile's header documents).
 define build_app
 	@mkdir -p $(OUT) $(CACHE)
-	$(DOCKER) bash -c 'set -e; $(CONFIGURE) && \
+	sync; $(DOCKER) bash -c 'set -e; $(CONFIGURE) && \
 	  cmake --build /cache/ppc --target $(1)_APPL -- -j4 && \
 	  $(EXTRA) \
 	  cp /cache/ppc/$(1).bin /cache/ppc/$(1).APPL /cache/ppc/$(1).dsk /out/'
 endef
 
-.PHONY: all relic shell clean
+.PHONY: all relic otglue clean-dsk shell clean
 
 all: relic
+
+# Apple's OT glue is required to link; the fetch script is idempotent and
+# announces its download, so a clean checkout builds without a manual step.
+otglue:
+	$(ROOT)/tools/fetch_otglue.sh
+
+# Drop the cached disk image so the next build regenerates it from scratch.
+# Release builds run this first: a dev RELIC.CFG hcopy'd in by
+# tools/run_macppc.sh leaves key bytes in freed HFS blocks of the .dsk.
+clean-dsk:
+	rm -f $(CACHE)/ppc/Relic.dsk
 
 # If a dev RELIC.CFG was staged in dist/macppc/ (run_macppc.sh does this from
 # .env.local), use it; otherwise fall back to the committed example.
@@ -35,7 +48,7 @@ relic: EXTRA = $(TOOLCHAIN)/bin/hmount /cache/ppc/Relic.dsk >/dev/null && \
 	  $(TOOLCHAIN)/bin/hcopy -r $(CFG_SRC) :RELIC.CFG && \
 	  $(TOOLCHAIN)/bin/hattrib -t TEXT -c ttxt :RELIC.CFG && \
 	  $(TOOLCHAIN)/bin/humount &&
-relic: ; $(call build_app,Relic)
+relic: otglue ; $(call build_app,Relic)
 
 shell:
 	docker run --rm -it --platform linux/amd64 -v $(abspath $(ROOT)):/work -w /work $(IMAGE) bash

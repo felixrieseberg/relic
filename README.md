@@ -23,6 +23,7 @@ pre-installed.
 | posix | any modern POSIX (macOS, Linux, *BSD) | libc, BSD sockets |
 | win32 | Windows 95 and newer (1995) | KERNEL32, USER32, WSOCK32 (Winsock 1.1) |
 | macppc | PowerPC Mac OS 8.1 and newer (1998) | Open Transport TCP/IP, AppleScript |
+| osxppc | PowerPC Mac OS X 10.1–10.5 (2001); Intel 10.4–10.6 via Rosetta | Terminal.app |
 | xbox | Microsoft Xbox (2001) | ability to run unsigned XBEs, USB keyboard |
 | wii | Nintendo Wii (2006) | Homebrew Channel, SD card, USB or GC keyboard |
 

@@ -11,8 +11,8 @@ licensed under the MIT License; see the LICENSE file.
 
 Home:   https://bearssl.org/
 Source: third_party/bearssl/
-Used:   Linked into all Relic binaries (posix, win32, macppc, xbox, wii) to
-        provide TLS.
+Used:   Linked into all Relic binaries (posix, win32, macppc, osxppc, xbox,
+        wii) to provide TLS.
 
 Copyright (c) 2016 Thomas Pornin <pornin@bolet.org>
 
@@ -155,9 +155,10 @@ Source: Extracted from Apple's final MPW release (MPW-GM disk image),
         image from a public mirror of the original Apple FTP tree.
 Used:   Linked into the PowerPC Mac OS build (build/macppc) so that
         InitOpenTransport and OTOpenInternetServices resolve correctly on
-        Open Transport 1.x. Not distributed in source form; the object
-        files are fetched at build time from a public Apple mirror (see
-        tools/fetch_otglue.sh) and are not redistributed with Relic source.
+        Open Transport 1.x. The object files are fetched at build time
+        from a public Apple mirror (see tools/fetch_otglue.sh) and are
+        never committed to the Relic source tree; they ship only inside
+        the compiled macppc binaries distributed with Relic releases.
 
 These object files are Copyright (c) Apple Computer, Inc. They are Apple's
 Open Transport static link glue, originally shipped as part of the MPW and
@@ -165,3 +166,26 @@ Universal Interfaces & Libraries developer tools. They are included in the
 compiled macppc binary under the terms of the original Apple distribution.
 No additional license text accompanies the object files; consult Apple's
 MPW / Universal Interfaces license for details.
+
+-------------------------------------------------------------------------------
+8. Apple Csu and GCC runtime (osxppc distribution only)
+-------------------------------------------------------------------------------
+
+Used:   The Mac OS X PowerPC binary (build/osxppc) statically embeds two
+        runtime pieces, as every Mach-O executable of that era did:
+
+  - crt1.o          Apple's program startup object, taken from the
+                    Mac OS X 10.1.5 SDK at link time. Copyright (c)
+                    Apple Computer, Inc. Its source is Apple's
+                    open-source Csu project, released under the Apple
+                    Public Source License:
+                    https://opensource.apple.com/apsl/
+  - libgcc          GCC's runtime support library, statically linked
+                    (-static-libgcc). Copyright (c) Free Software
+                    Foundation, Inc. Licensed under GPLv3 with the GCC
+                    Runtime Library Exception, which permits this use in
+                    independently licensed programs:
+                    https://www.gnu.org/licenses/gcc-exception-3.1.html
+
+Neither is distributed in source form with Relic; both are fetched or
+built by build/osxppc/Dockerfile.

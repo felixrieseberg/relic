@@ -5,7 +5,7 @@
 -include .env.local
 export
 
-.PHONY: all posix win32 macppc xbox wii relicos run-macppc setup-macppc run-win95 reload-win95 setup-win95 run-xbox setup-xbox run-wii setup-wii test test-valgrind e2e clean format format-check release
+.PHONY: all posix win32 macppc osxppc xbox wii relicos run-macppc setup-macppc run-win95 reload-win95 setup-win95 run-xbox setup-xbox run-wii setup-wii test test-valgrind e2e clean format format-check release
 
 FMT_SRC := $(shell find src test \( -path src/plat/relicos -prune \) -o \( -name '*.c' -o -name '*.h' \) -print)
 
@@ -19,6 +19,9 @@ win32:
 
 macppc:
 	$(MAKE) -C build/macppc relic
+
+osxppc:
+	$(MAKE) -C build/osxppc all
 
 xbox:
 	$(MAKE) -C build/xbox all
@@ -92,5 +95,6 @@ clean:
 	$(MAKE) -C build/posix clean
 	$(MAKE) -C build/win32 clean
 	$(MAKE) -C build/macppc clean
+	$(MAKE) -C build/osxppc clean
 	$(MAKE) -C build/xbox clean
 	$(MAKE) -C build/wii clean

@@ -1,14 +1,19 @@
 # Building Relic
 
-Five build targets share the same `src/core/` C99 code:
+Six build targets share the same `src/core/` C99 code:
 
 | Target | Toolchain | Command | Output |
 |---|---|---|---|
 | posix (dev loop) | system clang | `make -C build/posix` | `dist/posix/relic` |
 | win32 | Open Watcom v2 (via Docker) | `make -C build/win32` | `dist/win32/RELIC.EXE` |
 | classic Mac PPC | Retro68 | `make -C build/macppc` | `dist/macppc/Relic.bin` |
+| Mac OS X 10.1+ PPC | cctools-port + GCC 14 (via Docker) | `make -C build/osxppc` | `dist/osxppc/relic` |
 | xbox (original Xbox, 2001) | nxdk (via Docker) | `make -C build/xbox` | `dist/xbox/default.xbe` |
 | wii (Nintendo Wii, 2006) | devkitPPC (via Docker) | `make -C build/wii` | `dist/wii/relic.dol` |
+
+The Docker targets cache compiled third-party libraries (BearSSL, Lua)
+under `build/<target>/.cache/`; pass `FORCE=1` (e.g.
+`make -C build/wii bearssl FORCE=1`) to recompile them from scratch.
 
 ## POSIX (macOS/Linux)
 
@@ -108,6 +113,64 @@ Wii-USB-keyboard HLE is Windows-only, so the SI path is what works on
 macOS/Linux); on real hardware plug any USB keyboard into a back port and
 launch from the Homebrew Channel.
 
+## Mac OS X 10.1–10.5 (PowerPC) — osxppc
+
+The regular posix target covers macOS 10.13+ (x86_64) and 11+ (arm64), but
+Apple's current toolchain cannot emit `ppc` or `i386` Mach-O at all, so
+PowerPC OS X needs its own cross toolchain. `build/osxppc/` builds one in
+Docker, following the recipe the retro-PPC community keeps alive
+([VariantXYZ/gcc-powerpc-apple-darwin8](https://github.com/VariantXYZ/gcc-powerpc-apple-darwin8)):
+
+- **cctools-port**, branch `877.8-ld64-253.9-ppc` — Apple's `as`/`ld64`
+  with PowerPC support restored (Un1q32's patches, merged upstream into
+  [tpoechtrager/cctools-port](https://github.com/tpoechtrager/cctools-port)).
+- **GCC 14** (FSF, with Darwin/PPC cross fixes), C only, targeting
+  `powerpc-apple-darwin8`, with the **MacOSX10.4u SDK** as the toolchain
+  sysroot (plus `crt1.o` rebuilt from Apple's open-source Csu — the 10.4u
+  SDK's stock object doesn't link with modern GCC).
+- The **MacOSX10.1.5 SDK** as the *app* sysroot: relic itself is compiled
+  with `-isysroot <10.1.5> -mmacosx-version-min=10.1 -mlong-double-64`,
+  so it links against Puma-era libSystem/crt1.o and runs on every PowerPC
+  release from 10.1 to 10.5. (`-mlong-double-64` matters: the `$LDBL128`
+  printf symbols only exist on 10.4+.) Both SDKs are fetched at
+  image-build time from a public mirror, sha256-pinned.
+
+Why 10.1 and not 10.0: Cheetah never had an SDK, its dyld predates the
+two-level namespace these binaries use, and xnu-123.5 has no
+`/dev/random` device at all — the entropy source TLS needs (`/dev/urandom`
+arrived with xnu-201 in 10.1).
+
+One-time (compiles the cross compiler; minutes to ~half an hour depending
+on the machine):
+
+    make -C build/osxppc image
+
+Then:
+
+    make -C build/osxppc               # → dist/osxppc/relic
+
+The output is a Mach-O `ppc` executable for Mac OS X 10.1+, run from
+Terminal.app like the posix binary. `-mcpu=750` keeps it G3-clean, and
+Rosetta runs it on Intel 10.4–10.6 too. The build ends with a header audit
+(the analogue of win32's import-table check): cputype `ppc`, `MH_EXECUTE`,
+an `LC_UNIXTHREAD` entry point (old dyld predates `LC_MAIN`), no dylib
+imports beyond `/usr/lib/libSystem.B.dylib`, and every undefined symbol
+present in the 10.1.5 SDK's real libSystem export table.
+
+There is no emulator wired into the repo for this target: PowerPC OS X
+needs full-system emulation (`qemu-system-ppc -M mac99` boots 10.2–10.5
+from your own install media) or real hardware. The header audit plus the
+fact that `src/plat/posix/plat_posix.c` sticks to early-2000s APIs
+(`popen`, `select`, `termios`, `sigaction`, `gethostbyname`) is the
+compile-time safety net; big-endian correctness is already exercised by
+the wii and macppc targets.
+
+**SDK note:** the Docker image embeds Apple's MacOSX10.4u and
+MacOSX10.1.5 SDKs (fetched by `make image`, the same way
+`tools/fetch_otglue.sh` pulls the MPW image), so don't push the image to
+a registry. The *binaries* built against them ship in releases like every
+other target (see `NOTICES`).
+
 ## Classic Mac OS — Retro68
 
 Retro68 is a modern GCC cross-compiler for 68k/PPC classic Mac. The build
@@ -143,7 +206,7 @@ app is on the desktop. See `emu/macppc/README.md` for details.
 `tools/build_release.sh` rebuilds targets from a wiped `dist/<target>/` and
 packs distributable archives into `dist/release/`:
 
-    make release                        # posix win32 xbox wii (Docker required)
+    make release                        # all six targets (Docker required)
     tools/build_release.sh win32 wii    # just some targets
     VERSION=0.2.0 make release          # override the version stamp
 
@@ -153,10 +216,11 @@ anything that looks like a real API key and aborts if it finds one, so a dev
 config can't slip into a release. It also warns when the version stamp
 doesn't match `RELIC_VERSION` in `src/main.c`.
 
-The macppc target is left out of the default set (and out of CI releases)
-on purpose: its binaries statically link Apple's Open Transport glue (see
-`tools/fetch_otglue.sh`), so the resulting archive is for personal use
-only. `tools/build_release.sh macppc` builds it explicitly.
+Two targets carry Apple-derived bits: macppc statically links Apple's Open
+Transport glue (`make -C build/macppc` auto-fetches it via
+`tools/fetch_otglue.sh`) and osxppc links against Apple's MacOSX10.1.5 SDK
+(see `NOTICES`). The SDK and MPW images themselves are never committed or
+redistributed.
 
 On macOS the posix archive is a universal binary: x86_64 (runs on Intel Macs
 back to macOS 10.13 High Sierra) plus arm64 (Apple Silicon), built by

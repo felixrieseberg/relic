@@ -22,3 +22,4 @@ test_conv.dat
 __pycache__/
 /build/xbox/.cache/
 /build/wii/.cache/
+/build/osxppc/.cache/
