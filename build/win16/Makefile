@@ -13,9 +13,12 @@ MOUNTS  := -v $(abspath $(ROOT)):/work:ro -v $(abspath $(OUT)):/out -v $(CACHE):
 DOCKER  := docker run --rm --platform linux/amd64 $(MOUNTS) $(IMAGE)
 DOCKERI := docker run --rm -i --platform linux/amd64 $(MOUNTS) $(IMAGE)
 
-.PHONY: all image bearssl relic audit shell clean
+.PHONY: all image bearssl relic audit floppy shell clean
 
-all: relic audit
+all: relic audit floppy
+
+floppy: relic
+	$(ROOT)/tools/pack_win16.sh
 
 # The image is defined once in build/win32; build it from there.
 image:
@@ -38,6 +41,9 @@ relic: bearssl
 # Import audit: a bound Win386 NE may reference only the modules every
 # Windows 3.1 install has (WINSOCK.DLL is resolved at runtime on purpose,
 # so it never appears here and the app can start without a TCP/IP stack).
+# Module granularity only -- NE imports are module+ordinal, so an ordinal
+# added after 3.1 would still pass; per-function 3.1 availability relies
+# on review (the win386 supervisor itself targets Windows 3.0).
 audit: relic
 	@$(DOCKER) sh -c 'wdump /out/RELIC.EXE' 2>/dev/null \
 	  | sed -n '/Module Reference Table/,/^ *$$/p' | grep -E '^[A-Z][A-Z0-9_.]*$$' \

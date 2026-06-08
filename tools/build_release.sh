@@ -140,7 +140,6 @@ do_win16() {
   need_docker win16
   rm -rf dist/win16
   $MAKE -C build/win16 all
-  tools/pack_win16.sh
   NAME=relic-$VERSION-win16
   stage_init win16
   cp dist/win16/RELIC.EXE dist/win16/RELIC.CFG dist/win16/README.TXT \

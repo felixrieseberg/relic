@@ -70,7 +70,9 @@ typedef struct {
 
 typedef struct {
     unsigned short fd_count;
-    unsigned short fd_array[4]; /* SOCKET is u_int == 16 bits on Win16 */
+    unsigned short fd_array[1]; /* SOCKET is u_int == 16 bits on Win16;
+                                 * select() reads fd_count entries and we
+                                 * only ever poll one socket. */
 } w16_fd_set;
 
 typedef struct {
@@ -144,7 +146,6 @@ static const char *const WS_NAMES[WSF_NFUNC] = {
     "RECV",       "SELECT",     "CLOSESOCKET", "GETHOSTBYNAME", "INET_ADDR"};
 
 static FARPROC g_ws_fn[WSF_NFUNC];
-static HINSTANCE g_ws_dll;
 static int g_ws_started; /* 0 untried, 1 up, -1 failed */
 
 /* All socket payloads go through this bounce buffer with ONE 16:16 alias
@@ -152,8 +153,12 @@ static int g_ws_started; /* 0 untried, 1 up, -1 failed */
  * for arbitrarily-aligned interior pointers (handshakes died with the
  * server rejecting our Finished -- corrupted bytes on the wire); a single
  * AllocAlias16 of a static buffer is exact, and the alias is passed as a
- * raw dword ('d') so no per-call conversion happens at all. */
-static unsigned char g_xfer[16384];
+ * raw dword ('d') so no per-call conversion happens at all. Sized past
+ * BearSSL's mono buffer (BR_SSL_BUFSIZE_MONO == 16709) so a maximum-size
+ * TLS record never splits into a second thunk round trip; plat_net_wait
+ * borrows the first 128 bytes as fd_set/timeval scratch between
+ * transfers. */
+static unsigned char g_xfer[16768];
 static DWORD g_xfer16;
 
 /* plat.h hands out int handles with negatives reserved for PLAT_NET_E*;
@@ -183,13 +188,14 @@ static void ws_shutdown(void)
 
 static int ws_init(void)
 {
+    HINSTANCE dll;
     int i;
     if (g_ws_started) return g_ws_started == 1 ? 0 : -1;
     g_ws_started = -1;
-    g_ws_dll = LoadLibrary("WINSOCK.DLL");
-    if ((UINT)g_ws_dll < 32) return -1;
+    dll = LoadLibrary("WINSOCK.DLL"); /* never freed: lives for the run */
+    if ((UINT)dll < 32) return -1;
     for (i = 0; i < WSF_NFUNC; i++) {
-        g_ws_fn[i] = GetProcAddress(g_ws_dll, WS_NAMES[i]);
+        g_ws_fn[i] = GetProcAddress(dll, WS_NAMES[i]);
         if (g_ws_fn[i] == 0) return -1;
     }
     if (w16_flat_init() != 0) return -1;
@@ -606,13 +612,12 @@ int plat_shell(const char *cmd, char *out, int cap)
      * first_token can't split those, so match the verb by prefix. */
     first_token(cmd, tok, sizeof tok);
     vlen = 0;
-    if (!stricmp(tok, "cd") || !stricmp(tok, "chdir"))
-        vlen = (int)strlen(tok);
-    else if (!strnicmp(tok, "chdir", 5)
-             && (tok[5] == '.' || tok[5] == '\\' || tok[5] == '/'))
+    if (!strnicmp(tok, "chdir", 5)
+        && (tok[5] == 0 || tok[5] == '.' || tok[5] == '\\' || tok[5] == '/'))
         vlen = 5;
     else if (!strnicmp(tok, "cd", 2)
-             && (tok[2] == '.' || tok[2] == '\\' || tok[2] == '/'))
+             && (tok[2] == 0 || tok[2] == '.' || tok[2] == '\\'
+                 || tok[2] == '/'))
         vlen = 2;
     if (vlen || (tok[0] && tok[1] == ':' && tok[2] == 0)) {
         const char *a = cmd;
@@ -745,8 +750,10 @@ int plat_shell(const char *cmd, char *out, int cap)
     if (out[0] == 0) {
         if (strchr(cmd, '>')) {
             strcpy(out, "(stdout redirected by command)\n");
-        } else if (first_token(cmd, tok, sizeof tok) && !is_dos_internal(tok)) {
-            /* COMMAND.COM prints "Bad command or file name" straight to
+        } else if (tok[0] && !is_dos_internal(tok)) {
+            /* tok still holds the first token from the cd check above --
+             * every branch that rewrites it returns before reaching here.
+             * COMMAND.COM prints "Bad command or file name" straight to
              * CON, so '>' never captures it. Win16 has no SearchPath to
              * confirm, so phrase it as a hint rather than a verdict. */
             snprintf(out, (size_t)cap,
