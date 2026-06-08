@@ -170,7 +170,8 @@ Relic.dsk  HFS disk image: mount it (or use it in SheepShaver) -- the app
 Relic.bin  MacBinary-encoded application, for transferring to a real Mac
            (decode with StuffIt Expander).
 Put your real key on the api_key= line of RELIC.CFG before launching.
-Requires Mac OS 8.1+ with Open Transport TCP/IP.
+Requires Mac OS 8.1-9.2.2 with Open Transport TCP/IP (also works in
+OS X's Classic environment; for native Mac OS X, use the osxppc build).
 EOF
   finish_zip "$STAGE" "$NAME.zip"
 }
