@@ -5,7 +5,7 @@
 -include .env.local
 export
 
-.PHONY: all posix win32 macppc xbox wii relicos run-macppc setup-macppc run-win95 reload-win95 setup-win95 run-xbox setup-xbox run-wii setup-wii test test-valgrind e2e clean format format-check release
+.PHONY: all posix win32 win16 macppc xbox wii relicos run-macppc setup-macppc run-win95 reload-win95 setup-win95 run-win16 reload-win16 run-xbox setup-xbox run-wii setup-wii test test-valgrind e2e clean format format-check release
 
 FMT_SRC := $(shell find src test \( -path src/plat/relicos -prune \) -o \( -name '*.c' -o -name '*.h' \) -print)
 
@@ -16,6 +16,9 @@ posix:
 
 win32:
 	$(MAKE) -C build/win32 all
+
+win16:
+	$(MAKE) -C build/win16 all
 
 macppc:
 	$(MAKE) -C build/macppc relic
@@ -46,6 +49,14 @@ reload-win95:
 
 setup-win95:
 	tools/setup_win95.sh $(IMG)
+
+# Build + boot the Windows 3.x target inside the Win95 guest (Win386 NE
+# binaries run there natively). ARGS=--no-build|--fresh.
+run-win16:
+	tools/run_win16.sh $(ARGS)
+
+reload-win16:
+	tools/run_win16.sh --reload $(ARGS)
 
 # Build + boot under xemu. ARGS=--no-build|--fresh.
 run-xbox:
@@ -91,6 +102,7 @@ format-check:
 clean:
 	$(MAKE) -C build/posix clean
 	$(MAKE) -C build/win32 clean
+	$(MAKE) -C build/win16 clean
 	$(MAKE) -C build/macppc clean
 	$(MAKE) -C build/xbox clean
 	$(MAKE) -C build/wii clean

@@ -1,0 +1,5 @@
+^KERNEL$
+^USER$
+^GDI$
+^KEYBOARD$
+^SOUND$

@@ -1,11 +1,12 @@
 # Building Relic
 
-Five build targets share the same `src/core/` C99 code:
+Six build targets share the same `src/core/` C99 code:
 
 | Target | Toolchain | Command | Output |
 |---|---|---|---|
 | posix (dev loop) | system clang | `make -C build/posix` | `dist/posix/relic` |
 | win32 | Open Watcom v2 (via Docker) | `make -C build/win32` | `dist/win32/RELIC.EXE` |
+| win16 (Windows 3.x, 1992) | Open Watcom v2 Win386 (via Docker) | `make -C build/win16` | `dist/win16/RELIC.EXE` |
 | classic Mac PPC | Retro68 | `make -C build/macppc` | `dist/macppc/Relic.bin` |
 | xbox (original Xbox, 2001) | nxdk (via Docker) | `make -C build/xbox` | `dist/xbox/default.xbe` |
 | wii (Nintendo Wii, 2006) | devkitPPC (via Docker) | `make -C build/wii` | `dist/wii/relic.dol` |
@@ -44,6 +45,39 @@ drops you into the container with `wcl386` on PATH for experiments.
 
 On a Linux host you can skip Docker: install OW2 natively, `export WATCOM=...`,
 and run the `wcl386` line from the Makefile directly.
+
+## Windows 3.x — Open Watcom v2 + Win386
+
+The win16 target shares the relic-ow2 Docker image with win32. `wcc386
+-bt=windows` compiles `core/` as ordinary 32-bit flat code (so `int` stays
+32 bits and BearSSL builds unchanged), `wlink` emits a Phar Lap REX, and
+`wbind` staples Watcom's Win386 supervisor on front to produce a real NE
+executable that Windows 3.1+ in 386 enhanced mode loads natively. Winsock
+is called through runtime thunks into the 16-bit WINSOCK.DLL (see
+`src/plat/win16/plat_win16.c`), so the EXE starts fine on machines with no
+TCP/IP stack installed.
+
+    make -C build/win16 image     # only if relic-ow2 isn't built yet
+    make -C build/win16           # → dist/win16/RELIC.EXE
+    tools/pack_win16.sh           # → dist/win16/relic.img (1.44 MB floppy)
+
+The module audit asserts the NE references only KERNEL / USER / GDI /
+KEYBOARD / SOUND (`tools/win16-allowlist.txt`).
+
+### Running under emulation
+
+There is no Windows 3.11 image in the dev loop, but Win95 runs Win386
+binaries natively (same loader, same 16-bit Winsock ABI), so the win16
+build smoke-tests in the same guest as win32:
+
+    make run-win16                # rebuilds, packs relic16.iso, boots QEMU
+    make reload-win16             # hot-swap D: in the running guest
+
+Inside the guest run `D:\INSTALL.BAT` (installs to `C:\RELIC16`), then
+launch `C:\RELIC16\RELIC.EXE`. On real Windows 3.x hardware: copy
+`RELIC.EXE` + `RELIC.CFG` from the floppy image, and run the EXE from
+Program Manager or File Manager (the console is its own window — there is
+no console subsystem on 3.x).
 
 ## Xbox (2001) — nxdk
 

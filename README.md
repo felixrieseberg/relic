@@ -21,6 +21,7 @@ pre-installed.
 | Target | Operating systems | Runtime requirements |
 |---|---|---|
 | posix | any modern POSIX (macOS, Linux, *BSD) | libc, BSD sockets |
+| win16 | Windows 3.1 and newer (1992) | 386 enhanced mode, WINSOCK.DLL (Winsock 1.1: MS TCP/IP-32 on WfW 3.11, or Trumpet) |
 | win32 | Windows 95 and newer (1995) | KERNEL32, USER32, WSOCK32 (Winsock 1.1) |
 | macppc | PowerPC Mac OS 8.1 and newer (1998) | Open Transport TCP/IP, AppleScript |
 | xbox | Microsoft Xbox (2001) | ability to run unsigned XBEs, USB keyboard |
