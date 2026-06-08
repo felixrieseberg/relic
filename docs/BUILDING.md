@@ -63,8 +63,7 @@ is called through runtime thunks into the 16-bit WINSOCK.DLL (see
 TCP/IP stack installed.
 
     make -C build/win16 image     # only if relic-ow2 isn't built yet
-    make -C build/win16           # → dist/win16/RELIC.EXE
-    tools/pack_win16.sh           # → dist/win16/relic.img (1.44 MB floppy)
+    make -C build/win16           # → dist/win16/RELIC.EXE + relic.img (floppy)
 
 The module audit asserts the NE references only KERNEL / USER / GDI /
 KEYBOARD / SOUND (`tools/win16-allowlist.txt`).
